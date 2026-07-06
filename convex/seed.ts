@@ -36,10 +36,6 @@ type FoodSeed = {
 
 // Common season sets for readability.
 const ALL: Season[] = ['Spring', 'Summer', 'Autumn', 'Winter']
-// Spring-core through the whole cycle (allowed everywhere). Autumn/Winter
-// inclusion here is inferred, so these are flagged provisional below only
-// where their Autumn/Winter status is the uncertain part.
-const SPRING_SUMMER: Season[] = ['Spring', 'Summer']
 const SUMMER_ONWARD: Season[] = ['Summer', 'Autumn', 'Winter']
 
 const FOODS: FoodSeed[] = [
