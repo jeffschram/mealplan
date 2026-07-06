@@ -137,3 +137,10 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Mealplan agent working folders (never commit)
+_library/
+_output/
+
+# Convex
+.convex/
