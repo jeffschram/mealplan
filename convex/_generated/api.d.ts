@@ -9,6 +9,7 @@
  */
 
 import type * as foods from "../foods.js";
+import type * as seasons from "../seasons.js";
 import type * as seed from "../seed.js";
 import type * as stats from "../stats.js";
 
@@ -20,6 +21,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   foods: typeof foods;
+  seasons: typeof seasons;
   seed: typeof seed;
   stats: typeof stats;
 }>;
