@@ -104,6 +104,11 @@ export default defineSchema({
     // Which producer generated this plan.
     generatedBy: v.union(v.literal('rule'), v.literal('claude-routine')),
     createdAt: v.number(),
+    // Shopping-list items that have been checked off (by item name) while
+    // shopping. Persisted per plan and live-synced across devices so the iPad
+    // and a phone stay in agreement. Absent on older/freshly generated plans;
+    // treated as empty when missing.
+    shoppingChecked: v.optional(v.array(v.string())),
   })
     // Order plans newest-first so getPlanForDate can scan recent plans and
     // return the freshest one whose coveredDates include the target date.

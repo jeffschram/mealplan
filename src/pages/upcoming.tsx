@@ -148,7 +148,15 @@ function PrepShopSummary({ plan }: { plan: MealPlan }) {
         )}
       </div>
       <div className="space-y-2 rounded-3xl border border-border bg-card/70 p-5 shadow-[var(--shadow-soft)]">
-        <h3 className="text-sm font-semibold tracking-tight">🛒 To shop</h3>
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="text-sm font-semibold tracking-tight">🛒 To shop</h3>
+          {plan.shoppingList.length > 0 &&
+          (plan.shoppingChecked?.length ?? 0) > 0 ? (
+            <span className="text-xs font-medium tabular-nums text-muted-foreground">
+              {plan.shoppingChecked?.length ?? 0} / {plan.shoppingList.length} got
+            </span>
+          ) : null}
+        </div>
         {plan.shoppingList.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nothing to shop.</p>
         ) : (

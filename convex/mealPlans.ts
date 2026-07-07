@@ -223,3 +223,34 @@ export const getPlanForDate = query({
     return plans.find((p) => p.coveredDates.includes(target)) ?? null
   },
 })
+
+// ── 4. Shopping-list check-off ───────────────────────────────────────────────
+
+/**
+ * Idempotent toggle of a shopping-list item's checked state for a plan. Adds
+ * the item name to `shoppingChecked` if absent, removes it if present. The
+ * Convex live query re-runs on write, so checking on a phone reflects on the
+ * iPad automatically (and vice versa). No-ops gracefully if the plan is gone.
+ */
+export const toggleShoppingItem = mutation({
+  args: { planId: v.id('mealPlans'), item: v.string() },
+  handler: async (ctx, { planId, item }) => {
+    const plan = await ctx.db.get(planId)
+    if (!plan) return
+    const checked = plan.shoppingChecked ?? []
+    const next = checked.includes(item)
+      ? checked.filter((i) => i !== item)
+      : [...checked, item]
+    await ctx.db.patch(planId, { shoppingChecked: next })
+  },
+})
+
+/** Clear all shopping-list checks for a plan (reset for a fresh shopping run). */
+export const clearShoppingChecks = mutation({
+  args: { planId: v.id('mealPlans') },
+  handler: async (ctx, { planId }) => {
+    const plan = await ctx.db.get(planId)
+    if (!plan) return
+    await ctx.db.patch(planId, { shoppingChecked: [] })
+  },
+})

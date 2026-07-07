@@ -1,8 +1,12 @@
-import { useQuery } from 'convex/react'
+import { useMemo } from 'react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
 import { Page } from '@/components/layout/page'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
 
 type MealPlan = Doc<'mealPlans'>
 
@@ -57,24 +61,7 @@ function PlanView({ plan }: { plan: MealPlan }) {
       </section>
 
       {/* Shopping list */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">Shopping list</h2>
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
-          <ul className="divide-y divide-border">
-            {plan.shoppingList.map((s) => (
-              <li
-                key={s.item}
-                className="flex items-center justify-between px-3 py-2 text-sm"
-              >
-                <span>{s.item}</span>
-                <span className="text-muted-foreground tabular-nums">
-                  {s.quantity}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      <ShoppingList plan={plan} />
 
       {/* Daily meals */}
       <section className="space-y-3">
@@ -102,6 +89,98 @@ function PlanView({ plan }: { plan: MealPlan }) {
         </div>
       </section>
     </div>
+  )
+}
+
+/**
+ * Shopping list with per-item check-off, persisted per plan via Convex so the
+ * checked state survives reloads and live-syncs across the kitchen iPad and a
+ * phone at the store. Checked items sink to the bottom and get a muted,
+ * struck-through style. Rows are touch-sized for tapping while shopping.
+ */
+function ShoppingList({ plan }: { plan: MealPlan }) {
+  const toggle = useMutation(api.mealPlans.toggleShoppingItem)
+  const clear = useMutation(api.mealPlans.clearShoppingChecks)
+
+  const checkedSet = useMemo(
+    () => new Set(plan.shoppingChecked ?? []),
+    [plan.shoppingChecked],
+  )
+
+  // Stable-sort checked items below unchecked ones, preserving original order
+  // within each group.
+  const rows = useMemo(() => {
+    return plan.shoppingList
+      .map((s, i) => ({ ...s, i, checked: checkedSet.has(s.item) }))
+      .sort((a, b) =>
+        a.checked === b.checked ? a.i - b.i : a.checked ? 1 : -1,
+      )
+  }, [plan.shoppingList, checkedSet])
+
+  const total = plan.shoppingList.length
+  const gotCount = plan.shoppingList.filter((s) => checkedSet.has(s.item)).length
+  const allDone = total > 0 && gotCount === total
+
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold tracking-tight">Shopping list</h2>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'text-sm font-medium tabular-nums',
+              allDone ? 'text-primary' : 'text-muted-foreground',
+            )}
+          >
+            {allDone ? '🎉 ' : ''}
+            {gotCount} / {total} got
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => clear({ planId: plan._id })}
+            disabled={gotCount === 0}
+          >
+            Reset
+          </Button>
+        </div>
+      </div>
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
+        <ul className="divide-y divide-border">
+          {rows.map((s) => (
+            <li key={s.item}>
+              <label
+                className={cn(
+                  'flex min-h-12 cursor-pointer items-center gap-3 px-3 py-2 text-sm transition-colors hover:bg-muted/40',
+                  s.checked && 'text-muted-foreground',
+                )}
+              >
+                <Checkbox
+                  checked={s.checked}
+                  onCheckedChange={() =>
+                    toggle({ planId: plan._id, item: s.item })
+                  }
+                  className="size-5"
+                />
+                <span
+                  className={cn('flex-1', s.checked && 'line-through')}
+                >
+                  {s.item}
+                </span>
+                <span
+                  className={cn(
+                    'tabular-nums text-muted-foreground',
+                    s.checked && 'line-through',
+                  )}
+                >
+                  {s.quantity}
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   )
 }
 
