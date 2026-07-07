@@ -11,9 +11,17 @@ const NAV_ITEMS = [
 export function AppShell() {
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex w-full max-w-5xl items-center gap-6 px-6 py-4">
-          <span className="text-lg font-semibold tracking-tight">Mealplan</span>
+      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/85 backdrop-blur-sm">
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-3 px-6 py-4">
+          <span className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <span
+              aria-hidden
+              className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-base"
+            >
+              🥕
+            </span>
+            <span className="font-[var(--font-heading)]">Mealplan</span>
+          </span>
           <nav className="flex items-center gap-1">
             {NAV_ITEMS.map((item) => (
               <NavLink
@@ -22,10 +30,10 @@ export function AppShell() {
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                    'rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-secondary text-secondary-foreground'
-                      : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground',
+                      ? 'bg-primary/15 text-primary'
+                      : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground',
                   )
                 }
               >
@@ -36,7 +44,7 @@ export function AppShell() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
         <Outlet />
       </main>
     </div>
