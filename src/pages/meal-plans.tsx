@@ -30,12 +30,12 @@ function PlanView({ plan }: { plan: MealPlan }) {
 
       {/* Meal-prep batch */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-tight">Meal-prep batch</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Meal-prep batch</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {plan.mealPrepBatch.map((c) => (
             <div
               key={c.name}
-              className="space-y-2 rounded-lg border border-border p-3"
+              className="space-y-2 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-soft)]"
             >
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-medium">{c.name}</span>
@@ -62,8 +62,8 @@ function PlanView({ plan }: { plan: MealPlan }) {
 
       {/* Shopping list */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-tight">Shopping list</h2>
-        <div className="rounded-lg border border-border">
+        <h2 className="text-lg font-semibold tracking-tight">Shopping list</h2>
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
           <ul className="divide-y divide-border">
             {plan.shoppingList.map((s) => (
               <li
@@ -82,14 +82,14 @@ function PlanView({ plan }: { plan: MealPlan }) {
 
       {/* Daily meals */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-tight">Daily meals</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Daily meals</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {plan.dailyMeals.map((day) => {
             const label = plan.coveredDays.find((d) => d.date === day.date)?.label
             return (
               <div
                 key={day.date}
-                className="space-y-2 rounded-lg border border-border p-3"
+                className="space-y-2 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-soft)]"
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="font-medium">{label ?? day.date}</span>
@@ -112,7 +112,7 @@ function PlanView({ plan }: { plan: MealPlan }) {
 function Meal({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="space-y-1">
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="text-xs font-semibold uppercase tracking-wide text-primary/80">
         {title}
       </div>
       {items.length === 0 ? (
@@ -185,9 +185,15 @@ export function MealPlansPage() {
         {plans === undefined ? (
           <p className="text-sm text-muted-foreground">Loading plans…</p>
         ) : latest === null ? (
-          <p className="text-sm text-muted-foreground">
-            No plans yet. Click “Generate now” to build one.
-          </p>
+          <div className="max-w-md space-y-3 rounded-2xl border border-dashed border-border bg-card/60 p-8 text-center">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/12 text-2xl">
+              🧑‍🍳
+            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              No plans yet. Hit <span className="font-medium text-foreground">Generate now</span> and
+              we’ll pull together a week of cozy, in-season meals.
+            </p>
+          </div>
         ) : (
           <PlanView plan={latest} />
         )}

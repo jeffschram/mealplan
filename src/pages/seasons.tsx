@@ -140,9 +140,9 @@ export function SeasonsPage() {
       ) : weeks.length === 0 ? (
         <p className="text-sm text-muted-foreground">No weeks yet.</p>
       ) : (
-        <div className="max-h-[70vh] overflow-y-auto rounded-lg border border-border">
+        <div className="max-h-[70vh] overflow-y-auto rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-background">
+            <TableHeader className="sticky top-0 z-10 bg-card">
               <TableRow>
                 <TableHead className="w-[55%]">Week</TableHead>
                 <TableHead>Year · Week</TableHead>

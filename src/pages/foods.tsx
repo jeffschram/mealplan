@@ -177,36 +177,38 @@ export function FoodsPage() {
       {foods === undefined ? (
         <p className="text-sm text-muted-foreground">Loading foods…</p>
       ) : foods.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No foods yet.</p>
+        <p className="text-sm text-muted-foreground">
+          No foods yet — they’ll show up here once your pantry is stocked.
+        </p>
       ) : (
         <div className="space-y-8">
           {groups.map(([group, list]) => (
-            <section key={group} className="space-y-2">
+            <section key={group} className="space-y-2.5">
               <div className="flex items-baseline gap-2">
-                <h2 className="text-sm font-semibold tracking-tight">
+                <h2 className="text-base font-semibold tracking-tight">
                   {group}
                 </h2>
-                <span className="text-xs text-muted-foreground">
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
                   {list.length}
                 </span>
               </div>
-              <div className="rounded-lg border border-border">
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
                 <FoodTable foods={list} onRate={onRate} />
               </div>
             </section>
           ))}
 
           {yuck.length > 0 ? (
-            <section className="space-y-2 opacity-60">
+            <section className="space-y-2.5 opacity-70">
               <div className="flex items-baseline gap-2">
-                <h2 className="text-sm font-semibold tracking-tight text-muted-foreground">
-                  Yuck
+                <h2 className="text-base font-semibold tracking-tight text-muted-foreground">
+                  Not for us
                 </h2>
                 <span className="text-xs text-muted-foreground">
                   {yuck.length} — hidden from generated plans
                 </span>
               </div>
-              <div className="rounded-lg border border-dashed border-border">
+              <div className="overflow-hidden rounded-2xl border border-dashed border-border bg-card/60">
                 <FoodTable foods={yuck} onRate={onRate} />
               </div>
             </section>

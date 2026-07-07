@@ -41,8 +41,8 @@ function MealCard({
   prepByName: Map<string, MealPrepComponent>
 }) {
   return (
-    <div className="space-y-3 rounded-lg border border-border p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-soft)]">
+      <div className="text-xs font-semibold uppercase tracking-wide text-primary/80">
         {title}
       </div>
       {items.length === 0 ? (
@@ -100,14 +100,17 @@ export function TodayPage() {
   if (!plan || !today) {
     return (
       <Page title="Today" description={longDate}>
-        <div className="max-w-md space-y-4 rounded-lg border border-border p-6">
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold tracking-tight">
-              No plan covers today
+        <div className="max-w-md space-y-4 rounded-2xl border border-border bg-card p-8 text-center shadow-[var(--shadow-soft)]">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/12 text-2xl">
+            🍲
+          </div>
+          <div className="space-y-1.5">
+            <h2 className="text-lg font-semibold tracking-tight">
+              Nothing on the menu yet
             </h2>
-            <p className="text-sm text-muted-foreground">
-              There’s no active meal plan for {longDate}. Head to Meal Plans to
-              generate one for the upcoming cadence window.
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              There’s no active meal plan for {longDate}. Pop over to Meal Plans
+              and we’ll whip one up for the week ahead.
             </p>
           </div>
           <Button asChild>
