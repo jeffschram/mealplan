@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import type { Doc } from '../../convex/_generated/dataModel'
-
-type MealPlan = Doc<'mealPlans'>
-type MealPrepComponent = MealPlan['mealPrepBatch'][number]
 
 /** Today's ISO date in the user's local timezone (YYYY-MM-DD). */
 function todayIso(now: Date = new Date()): string {
@@ -84,24 +80,9 @@ const MEAL_EMOJI: Record<string, string> = {
   Dinner: '🍽️',
 }
 
-/** First prep step, trimmed to a short glanceable cue. */
-function prepCue(component: MealPrepComponent | undefined): string | null {
-  if (!component || component.prepSteps.length === 0) return null
-  const first = component.prepSteps[0].trim()
-  if (!first) return null
-  return first.length > 90 ? `${first.slice(0, 89).trimEnd()}…` : first
-}
-
-/** One glanceable meal column (Breakfast / Lunch / Dinner). */
-function MealColumn({
-  title,
-  items,
-  prepByName,
-}: {
-  title: string
-  items: string[]
-  prepByName: Map<string, MealPrepComponent>
-}) {
+/** One glanceable meal column (Breakfast / Lunch / Dinner). Shows just the
+ * foods in the meal — prep/cooking is already handled at meal-prep time. */
+function MealColumn({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="flex flex-col rounded-4xl border border-border bg-card p-7 shadow-[var(--shadow-soft-lg)] lg:p-8">
       <div className="mb-5 flex items-center gap-3">
@@ -116,28 +97,15 @@ function MealColumn({
       {items.length === 0 ? (
         <p className="text-lg text-muted-foreground">Nothing planned.</p>
       ) : (
-        <ul className="flex flex-1 flex-col gap-6">
-          {items.map((item, i) => {
-            const component = prepByName.get(item)
-            const cue = prepCue(component)
-            return (
-              <li key={i} className="flex flex-col gap-2">
-                <span className="text-2xl font-bold leading-tight tracking-tight lg:text-[1.7rem]">
-                  {item}
-                </span>
-                {component ? (
-                  <span className="inline-flex w-fit max-w-full items-center rounded-full bg-secondary px-3 py-1 text-sm font-semibold text-secondary-foreground lg:text-base">
-                    {component.quantityFor2People}
-                  </span>
-                ) : null}
-                {cue ? (
-                  <p className="text-base leading-snug text-muted-foreground lg:text-lg">
-                    {cue}
-                  </p>
-                ) : null}
-              </li>
-            )
-          })}
+        <ul className="flex flex-1 flex-col gap-5">
+          {items.map((item, i) => (
+            <li
+              key={i}
+              className="text-2xl font-bold leading-tight tracking-tight lg:text-[1.7rem]"
+            >
+              {item}
+            </li>
+          ))}
         </ul>
       )}
     </div>
@@ -237,27 +205,14 @@ export function TodayPage() {
     )
   }
 
-  // Resolve each meal's component references against the prep batch.
-  const prepByName = new Map<string, MealPrepComponent>(
-    plan.mealPrepBatch.map((c) => [c.name, c]),
-  )
-
   return (
     <Board>
       <BoardHeader iso={iso} season={plan.season} asOf={checkedAt} />
 
       <div className="grid flex-1 items-stretch gap-6 lg:grid-cols-3 lg:gap-8">
-        <MealColumn
-          title="Breakfast"
-          items={today.breakfast}
-          prepByName={prepByName}
-        />
-        <MealColumn title="Lunch" items={today.lunch} prepByName={prepByName} />
-        <MealColumn
-          title="Dinner"
-          items={today.dinner}
-          prepByName={prepByName}
-        />
+        <MealColumn title="Breakfast" items={today.breakfast} />
+        <MealColumn title="Lunch" items={today.lunch} />
+        <MealColumn title="Dinner" items={today.dinner} />
       </div>
     </Board>
   )
