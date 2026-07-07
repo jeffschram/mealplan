@@ -1,12 +1,8 @@
-import { useState } from 'react'
-import { useConvex, useMutation, useQuery } from 'convex/react'
+import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
 import { Page } from '@/components/layout/page'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { generatePlan } from '@/lib/generate-plan'
-import type { GenerationContext } from '../../convex/lib/generatePlan'
 
 type MealPlan = Doc<'mealPlans'>
 
@@ -129,59 +125,16 @@ function Meal({ title, items }: { title: string; items: string[] }) {
 }
 
 export function MealPlansPage() {
-  const convex = useConvex()
-  const submitMealPlan = useMutation(api.mealPlans.submitMealPlan)
   const plans = useQuery(api.mealPlans.listMealPlans)
-
-  const [generating, setGenerating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const onGenerate = async () => {
-    setGenerating(true)
-    setError(null)
-    try {
-      // 1. Read context (season + cadence window + eligible foods). No AI here.
-      const ctx = (await convex.query(
-        api.mealPlans.getGenerationContext,
-        {},
-      )) as GenerationContext & { targetWindow: { coveredDays: unknown[] } }
-
-      // 2. Deterministically assemble a valid plan offline.
-      const plan = generatePlan(ctx as GenerationContext)
-
-      // 3. Persist via the same mutation the Claude routine uses.
-      await submitMealPlan({
-        season: plan.season,
-        coveredDays: plan.coveredDays,
-        mealPrepBatch: plan.mealPrepBatch,
-        shoppingList: plan.shoppingList,
-        dailyMeals: plan.dailyMeals,
-        generatedBy: 'rule',
-      })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setGenerating(false)
-    }
-  }
 
   const latest = plans?.[0] ?? null
 
   return (
     <Page
       title="Meal Plans"
-      description="Generate a rule-based plan for the upcoming cadence window (season-eligible, non-yuck foods, likes favored). AI-authored plans arrive from the scheduled Claude routine through the same pipeline."
+      description="Your current cadence-window plan (season-eligible, non-yuck foods, likes favored). Plans are authored automatically by the scheduled Claude routine."
     >
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Button onClick={onGenerate} disabled={generating}>
-            {generating ? 'Generating…' : 'Generate now'}
-          </Button>
-          {error ? (
-            <span className="text-sm text-destructive">{error}</span>
-          ) : null}
-        </div>
-
         {plans === undefined ? (
           <p className="text-sm text-muted-foreground">Loading plans…</p>
         ) : latest === null ? (
@@ -190,8 +143,9 @@ export function MealPlansPage() {
               🧑‍🍳
             </div>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              No plans yet. Hit <span className="font-medium text-foreground">Generate now</span> and
-              we’ll pull together a week of cozy, in-season meals.
+              No plan yet. Meal plans are generated automatically twice a week
+              (Mondays &amp; Fridays) by the Claude routine — your fresh plan will
+              appear here as soon as it runs.
             </p>
           </div>
         ) : (
