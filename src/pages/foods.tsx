@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
-import { ThumbsUp, ThumbsDown, Minus } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, Minus, Pencil, Trash2, Plus } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import { Page } from '@/components/layout/page'
@@ -15,6 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { FoodFormDialog } from './foods/food-form-dialog'
+import { DeleteFoodDialog } from './foods/delete-food-dialog'
 
 type Food = Doc<'foods'>
 type Rating = Food['rating']
@@ -76,9 +78,13 @@ function RatingControl({
 function FoodRow({
   food,
   onRate,
+  onEdit,
+  onDelete,
 }: {
   food: Food
   onRate: (id: Id<'foods'>, rating: Rating) => void
+  onEdit: (food: Food) => void
+  onDelete: (food: Food) => void
 }) {
   const liked = food.rating === 'like'
   const seasons = [...food.seasonEligibility].sort(
@@ -114,7 +120,33 @@ function FoodRow({
         </div>
       </TableCell>
       <TableCell className="text-right">
-        <RatingControl food={food} onRate={onRate} />
+        <div className="flex items-center justify-end gap-2">
+          <RatingControl food={food} onRate={onRate} />
+          <div className="flex items-center gap-0.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              title={`Edit ${food.name}`}
+              aria-label={`Edit ${food.name}`}
+              onClick={() => onEdit(food)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Pencil />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              title={`Remove ${food.name}`}
+              aria-label={`Remove ${food.name}`}
+              onClick={() => onDelete(food)}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        </div>
       </TableCell>
     </TableRow>
   )
@@ -123,22 +155,32 @@ function FoodRow({
 function FoodTable({
   foods,
   onRate,
+  onEdit,
+  onDelete,
 }: {
   foods: Food[]
   onRate: (id: Id<'foods'>, rating: Rating) => void
+  onEdit: (food: Food) => void
+  onDelete: (food: Food) => void
 }) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[40%]">Name</TableHead>
+          <TableHead className="w-[36%]">Name</TableHead>
           <TableHead>Seasons</TableHead>
           <TableHead className="text-right">Rating</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {foods.map((food) => (
-          <FoodRow key={food._id} food={food} onRate={onRate} />
+          <FoodRow
+            key={food._id}
+            food={food}
+            onRate={onRate}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
         ))}
       </TableBody>
     </Table>
@@ -149,12 +191,28 @@ export function FoodsPage() {
   const foods = useQuery(api.foods.list)
   const setRating = useMutation(api.foods.setRating)
 
+  // Dialog state: `formFood` distinguishes add (undefined + formOpen) from
+  // edit (a specific food). `deleteFood` drives the confirm dialog.
+  const [formOpen, setFormOpen] = useState(false)
+  const [formFood, setFormFood] = useState<Food | undefined>(undefined)
+  const [deleteFood, setDeleteFood] = useState<Food | undefined>(undefined)
+
   const onRate = (id: Id<'foods'>, rating: Rating) => {
     // Fire-and-forget; Convex re-runs the query so the row re-groups itself.
     void setRating({ foodId: id, rating })
   }
 
-  const { groups, yuck } = useMemo(() => {
+  const openAdd = () => {
+    setFormFood(undefined)
+    setFormOpen(true)
+  }
+
+  const openEdit = (food: Food) => {
+    setFormFood(food)
+    setFormOpen(true)
+  }
+
+  const { groups, yuck, groupNames } = useMemo(() => {
     const active = (foods ?? []).filter((f) => f.rating !== 'yuck')
     const yuck = (foods ?? []).filter((f) => f.rating === 'yuck')
     const byGroup = new Map<string, Food[]>()
@@ -166,20 +224,50 @@ export function FoodsPage() {
     const groups = [...byGroup.entries()].sort((a, b) =>
       a[0].localeCompare(b[0]),
     )
-    return { groups, yuck }
+    // Unique group names across all foods (including yuck), for the form picker.
+    const groupNames = [...new Set((foods ?? []).map((f) => f.group))].sort(
+      (a, b) => a.localeCompare(b),
+    )
+    return { groups, yuck, groupNames }
   }, [foods])
 
   return (
     <Page
       title="Foods"
       description="Curate household preferences. Like foods get prioritized in generated plans; yuck foods sink to the bottom and are avoided. Changes save automatically."
+      actions={
+        <Button type="button" onClick={openAdd}>
+          <Plus />
+          Add food
+        </Button>
+      }
     >
+      <FoodFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        food={formFood}
+        groups={groupNames}
+      />
+      <DeleteFoodDialog
+        open={deleteFood !== undefined}
+        onOpenChange={(open) => {
+          if (!open) setDeleteFood(undefined)
+        }}
+        food={deleteFood}
+      />
+
       {foods === undefined ? (
         <p className="text-sm text-muted-foreground">Loading foods…</p>
       ) : foods.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No foods yet — they’ll show up here once your pantry is stocked.
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            No foods yet — add your first one to start stocking the pantry.
+          </p>
+          <Button type="button" onClick={openAdd}>
+            <Plus />
+            Add food
+          </Button>
+        </div>
       ) : (
         <div className="space-y-8">
           {groups.map(([group, list]) => (
@@ -193,7 +281,12 @@ export function FoodsPage() {
                 </span>
               </div>
               <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
-                <FoodTable foods={list} onRate={onRate} />
+                <FoodTable
+                  foods={list}
+                  onRate={onRate}
+                  onEdit={openEdit}
+                  onDelete={setDeleteFood}
+                />
               </div>
             </section>
           ))}
@@ -209,7 +302,12 @@ export function FoodsPage() {
                 </span>
               </div>
               <div className="overflow-hidden rounded-2xl border border-dashed border-border bg-card/60">
-                <FoodTable foods={yuck} onRate={onRate} />
+                <FoodTable
+                  foods={yuck}
+                  onRate={onRate}
+                  onEdit={openEdit}
+                  onDelete={setDeleteFood}
+                />
               </div>
             </section>
           ) : null}
