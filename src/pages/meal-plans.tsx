@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
@@ -92,15 +92,43 @@ function PlanView({ plan }: { plan: MealPlan }) {
   )
 }
 
+type ShoppingItem = MealPlan['shoppingList'][number]
+
+/**
+ * Amazon Fresh grocery search deep link for a single item. `i=amazonfresh`
+ * scopes the search to Amazon's grocery storefront (which also surfaces Whole
+ * Foods items, since Whole Foods is served through amazon.com). This opens a
+ * real *search results* page — Amazon can't be auto-filled without a partner
+ * API, so the shopper adds items to the cart themselves.
+ */
+function amazonFreshSearchUrl(item: string) {
+  return `https://www.amazon.com/s?k=${encodeURIComponent(item)}&i=amazonfresh`
+}
+
+/** Render items as clean "Item — quantity" lines for the clipboard / mailto. */
+function itemsToText(items: ShoppingItem[]) {
+  return items
+    .map((s) => (s.quantity ? `${s.item} — ${s.quantity}` : s.item))
+    .join('\n')
+}
+
 /**
  * Shopping list with per-item check-off, persisted per plan via Convex so the
  * checked state survives reloads and live-syncs across the kitchen iPad and a
  * phone at the store. Checked items sink to the bottom and get a muted,
  * struck-through style. Rows are touch-sized for tapping while shopping.
+ *
+ * An export toolbar lets you copy the list to the clipboard (universal — paste
+ * into any store app, notes, etc.) or jump to an Amazon Fresh search for each
+ * item. Export defaults to the remaining (unchecked) items with a toggle for
+ * the full list.
  */
 function ShoppingList({ plan }: { plan: MealPlan }) {
   const toggle = useMutation(api.mealPlans.toggleShoppingItem)
   const clear = useMutation(api.mealPlans.clearShoppingChecks)
+
+  const [includeAll, setIncludeAll] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const checkedSet = useMemo(
     () => new Set(plan.shoppingChecked ?? []),
@@ -120,6 +148,39 @@ function ShoppingList({ plan }: { plan: MealPlan }) {
   const total = plan.shoppingList.length
   const gotCount = plan.shoppingList.filter((s) => checkedSet.has(s.item)).length
   const allDone = total > 0 && gotCount === total
+
+  // Items to export: remaining (unchecked) by default, or the full list.
+  const exportItems = useMemo(
+    () =>
+      includeAll
+        ? plan.shoppingList
+        : plan.shoppingList.filter((s) => !checkedSet.has(s.item)),
+    [plan.shoppingList, checkedSet, includeAll],
+  )
+
+  const handleCopy = async () => {
+    const text = itemsToText(exportItems)
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      // Fallback for browsers/contexts without the async clipboard API.
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleShopAmazon = () => {
+    const first = exportItems[0]
+    if (first) window.open(amazonFreshSearchUrl(first.item), '_blank', 'noopener')
+  }
 
   return (
     <section className="space-y-3">
@@ -145,6 +206,44 @@ function ShoppingList({ plan }: { plan: MealPlan }) {
           </Button>
         </div>
       </div>
+
+      {/* Export toolbar */}
+      {total > 0 && (
+        <div className="space-y-2 rounded-2xl border border-border bg-card/60 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleCopy}
+              disabled={exportItems.length === 0}
+            >
+              {copied ? '✓ Copied!' : `Copy list (${exportItems.length})`}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleShopAmazon}
+              disabled={exportItems.length === 0}
+            >
+              🛒 Shop on Amazon Fresh
+            </Button>
+            <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+              <Checkbox
+                checked={includeAll}
+                onCheckedChange={(v) => setIncludeAll(v === true)}
+                className="size-4"
+              />
+              Include got items
+            </label>
+          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Copy pastes into any store or notes app. Amazon Fresh links open a{' '}
+            <span className="font-medium">search</span> for each item — add them to
+            your cart there. One-click cart-fill isn&apos;t possible without an
+            Amazon partner API.
+          </p>
+        </div>
+      )}
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
         <ul className="divide-y divide-border">
           {rows.map((s) => (
@@ -175,6 +274,17 @@ function ShoppingList({ plan }: { plan: MealPlan }) {
                 >
                   {s.quantity}
                 </span>
+                <a
+                  href={amazonFreshSearchUrl(s.item)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title={`Search Amazon Fresh for ${s.item}`}
+                  aria-label={`Search Amazon Fresh for ${s.item}`}
+                  className="shrink-0 rounded-md px-1.5 py-1 text-base leading-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  🛒
+                </a>
               </label>
             </li>
           ))}
