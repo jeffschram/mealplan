@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Today', end: true },
+  { to: '/upcoming', label: 'Upcoming' },
   { to: '/foods', label: 'Foods' },
   { to: '/seasons', label: 'Seasons' },
   { to: '/meal-plans', label: 'Meal Plans' },
