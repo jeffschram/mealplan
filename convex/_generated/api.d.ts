@@ -9,6 +9,10 @@
  */
 
 import type * as foods from "../foods.js";
+import type * as lib_cadence from "../lib/cadence.js";
+import type * as lib_generatePlan from "../lib/generatePlan.js";
+import type * as lib_plan from "../lib/plan.js";
+import type * as mealPlans from "../mealPlans.js";
 import type * as seasons from "../seasons.js";
 import type * as seed from "../seed.js";
 import type * as stats from "../stats.js";
@@ -21,6 +25,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   foods: typeof foods;
+  "lib/cadence": typeof lib_cadence;
+  "lib/generatePlan": typeof lib_generatePlan;
+  "lib/plan": typeof lib_plan;
+  mealPlans: typeof mealPlans;
   seasons: typeof seasons;
   seed: typeof seed;
   stats: typeof stats;

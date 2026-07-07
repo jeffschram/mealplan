@@ -54,4 +54,58 @@ export default defineSchema({
     // The WildFit season assigned to this week.
     season: seasonValidator,
   }).index('by_weekStart', ['weekStartDate']),
+
+  // A generated meal plan covering a short window of days (see the cadence
+  // helper). Produced either by the in-app deterministic generator
+  // (generatedBy 'rule') or the scheduled Claude routine ('claude-routine'),
+  // both of which write through convex/mealPlans.ts:submitMealPlan.
+  mealPlans: defineTable({
+    // Season the plan was generated for, e.g. 'Spring'.
+    season: v.string(),
+    // The days this plan covers.
+    coveredDays: v.array(
+      v.object({
+        // ISO date, 'YYYY-MM-DD'.
+        date: v.string(),
+        // Weekday label, e.g. 'Monday'.
+        label: v.string(),
+      }),
+    ),
+    // Denormalized flat list of covered ISO dates. getPlanForDate scans the
+    // most-recent plans (via by_createdAt) and matches on this field, so the
+    // Today view resolves the active plan for a date without unpacking
+    // coveredDays on every row.
+    coveredDates: v.array(v.string()),
+    // Make-ahead components prepped in batch for the window.
+    mealPrepBatch: v.array(
+      v.object({
+        name: v.string(),
+        sourceFoods: v.array(v.string()),
+        quantityFor2People: v.string(),
+        prepSteps: v.array(v.string()),
+      }),
+    ),
+    // Aggregated shopping list.
+    shoppingList: v.array(
+      v.object({
+        item: v.string(),
+        quantity: v.string(),
+      }),
+    ),
+    // Per covered day: each meal is an array of mealPrepBatch component names.
+    dailyMeals: v.array(
+      v.object({
+        date: v.string(),
+        breakfast: v.array(v.string()),
+        lunch: v.array(v.string()),
+        dinner: v.array(v.string()),
+      }),
+    ),
+    // Which producer generated this plan.
+    generatedBy: v.union(v.literal('rule'), v.literal('claude-routine')),
+    createdAt: v.number(),
+  })
+    // Order plans newest-first so getPlanForDate can scan recent plans and
+    // return the freshest one whose coveredDates include the target date.
+    .index('by_createdAt', ['createdAt']),
 })
